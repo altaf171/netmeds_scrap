@@ -153,9 +153,7 @@ def getting_urls_cat(category):
         t2.start()
         t3.start()
 
-        t1.join()
-        t2.join()
-        t3.join()
+ 
     else:
         for link in drug_url_list:
             drug_ = get_drug(link)
