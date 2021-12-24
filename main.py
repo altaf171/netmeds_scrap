@@ -4,15 +4,20 @@ import time
 import requests
 import json
 import re
+import threading
+
+no_of_drugs_count = 0
 
 drugs_list = []
 
+
 def get_drug(url_link):
+
     drug_images = []  # store one or more images details
-    html_text =''
+    html_text = ''
     try:
         html_text = requests.get(url_link).text
-    except ConnectionError:
+    except Exception :
         print('new connection error')
         print('Waiting..........')
         time.sleep(20)
@@ -104,6 +109,10 @@ def get_drug(url_link):
 
     }
 
+    global no_of_drugs_count
+    no_of_drugs_count += 1
+
+    print('drug number: ', no_of_drugs_count)
     return drug
 
 
@@ -113,15 +122,56 @@ def getting_urls_cat(category):
     soup_cat = BeautifulSoup(html_txt, 'lxml')
     drug_url_list = [url_link.a.attrs['href'] for url_link in soup_cat.find_all(
         'li', attrs={'class': 'product-item'})]
-    for link in drug_url_list:
-        drug_ = get_drug(link)
-        drugs_list.append(drug_)
-        print(drug_)
+    # for link in drug_url_list:
+    #     drug_ = get_drug(link)
+    #     drugs_list.append(drug_)
+    #     print(drug_)
+
+    no_of_links = len(drug_url_list)
+
+    if no_of_links == 0:
+        return
+
+    if no_of_links > 2:
+        indexes_for_t1 = (0, no_of_links // 3)
+        indexes_for_t2 = (no_of_links//3, (no_of_links*2)//3)
+        indexes_for_t3 = ((no_of_links*2)//3, no_of_links-1)
+
+        def fun_parts_of_link(indexes):
+            a, b = indexes
+            for i in range(a, b):
+                drug_ = get_drug(drug_url_list[i])
+                create_json_file(drug_, 'drugs.json')
+                # drugs_list.append(drug_)
+                # print(drug_)
+
+        t1 = threading.Thread(target=fun_parts_of_link, args=(indexes_for_t1,))
+        t2 = threading.Thread(target=fun_parts_of_link, args=(indexes_for_t2,))
+        t3 = threading.Thread(target=fun_parts_of_link, args=(indexes_for_t3,))
+
+        t1.start()
+        t2.start()
+        t3.start()
+
+        t1.join()
+        t2.join()
+        t3.join()
+    else:
+        for link in drug_url_list:
+            drug_ = get_drug(link)
+            create_json_file(drug_, 'drugs.json')
+
+            # drugs_list.append(drug_)
+            # print(drug_)
 
 
 def create_json_file(drugs, filename):
-    with open(filename, 'w') as outputfile:
-        json.dump(drugs, outputfile, indent=4)
+    with open(filename, 'a') as outputfile:
+        str_line = json.dumps(drugs)
+        outputfile.write(str_line)
+        outputfile.write(',')
+
+
 
 
 html_txt_prescript_page = requests.get(
@@ -141,4 +191,3 @@ for x in alpha_drug_list:
         getting_urls_cat(link_cat)
 
 
-create_json_file(drugs_list, 'drugs.json')
