@@ -129,7 +129,7 @@ def getting_urls_cat(category):
 
     drugs_of_selectd_cat_list = []
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executer:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executer:
         for drug in executer.map(get_drug, drug_url_list):
             drugs_of_selectd_cat_list.append(drug)
 
@@ -164,7 +164,7 @@ def main():
             alpha_drug_list.append(x.attrs['href'])
 
     print('total drugs: ', total_no_of_drugs)
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executer:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executer:
         executer.map(getting_urls_cat, alpha_drug_list)
 
 
