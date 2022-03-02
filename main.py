@@ -1,14 +1,16 @@
-
+from ast import While
 from bs4 import BeautifulSoup
 import time
 import requests
 import json
 import re
-import threading
+import concurrent.futures
 
-no_of_drugs_count = 0
+no_of_drugs_count = 1
 
-drugs_list = []
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36 Edg/98.0.1108.62'
+}
 
 
 def get_drug(url_link):
@@ -16,13 +18,11 @@ def get_drug(url_link):
     drug_images = []  # store one or more images details
     html_text = ''
     try:
-        html_text = requests.get(url_link).text
-    except Exception :
-        print('new connection error')
-        print('Waiting..........')
-        time.sleep(20)
-        print('reconnecting...')
-        html_text = requests.get(url_link).text
+        print(f'fetching from {url_link}')
+        html_text = requests.get(url_link, headers=headers, timeout=60).text
+    except requests.exceptions.RequestException as e:
+        print('connection error')
+        return ''
 
     soup = BeautifulSoup(html_text, 'lxml')
 
@@ -96,7 +96,10 @@ def get_drug(url_link):
             'div', attrs={'class': 'manufacturer__name_value'}).text
         product_details[name] = value
 
+    global no_of_drugs_count
+
     drug = {
+        'id': no_of_drugs_count,
         'drug images': drug_images,
         'drug name': drug_name,
         'prescription': drug_prescription,
@@ -105,15 +108,16 @@ def get_drug(url_link):
         'final price': final_price,
         'mrp': price,
         'drug varient': drug_varient,
-        'product details': product_details
+        'product details': product_details}
 
-    }
-
-    global no_of_drugs_count
     no_of_drugs_count += 1
-
-    print('drug number: ', no_of_drugs_count)
     return drug
+
+
+def create_json_file(lst,  filename):
+    # drugs_dict = {'drugs': lst}
+    with open('./data/'+filename, 'w') as outputfile:
+        json.dump(lst, outputfile, indent=4)
 
 
 def getting_urls_cat(category):
@@ -122,70 +126,47 @@ def getting_urls_cat(category):
     soup_cat = BeautifulSoup(html_txt, 'lxml')
     drug_url_list = [url_link.a.attrs['href'] for url_link in soup_cat.find_all(
         'li', attrs={'class': 'product-item'})]
-    # for link in drug_url_list:
-    #     drug_ = get_drug(link)
-    #     drugs_list.append(drug_)
-    #     print(drug_)
 
-    no_of_links = len(drug_url_list)
+    drugs_of_selectd_cat_list = []
 
-    if no_of_links == 0:
-        return
+    with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executer:
+        for drug in executer.map(get_drug, drug_url_list):
+            drugs_of_selectd_cat_list.append(drug)
 
-    if no_of_links > 2:
-        indexes_for_t1 = (0, no_of_links // 3)
-        indexes_for_t2 = (no_of_links//3, (no_of_links*2)//3)
-        indexes_for_t3 = ((no_of_links*2)//3, no_of_links-1)
+    file_name = category.split("/")[-1] + '.json'
 
-        def fun_parts_of_link(indexes):
-            a, b = indexes
-            for i in range(a, b):
-                drug_ = get_drug(drug_url_list[i])
-                create_json_file(drug_, 'drugs.json')
-                # drugs_list.append(drug_)
-                # print(drug_)
+    print(f'Saving to file: {file_name}')
 
-        t1 = threading.Thread(target=fun_parts_of_link, args=(indexes_for_t1,))
-        t2 = threading.Thread(target=fun_parts_of_link, args=(indexes_for_t2,))
-        t3 = threading.Thread(target=fun_parts_of_link, args=(indexes_for_t3,))
-
-        t1.start()
-        t2.start()
-        t3.start()
-
- 
-    else:
-        for link in drug_url_list:
-            drug_ = get_drug(link)
-            create_json_file(drug_, 'drugs.json')
-
-            # drugs_list.append(drug_)
-            # print(drug_)
+    create_json_file(drugs_of_selectd_cat_list, file_name)
 
 
-def create_json_file(drugs, filename):
-    with open(filename, 'a') as outputfile:
-        str_line = json.dumps(drugs)
-        outputfile.write(str_line)
-        outputfile.write(',')
+# ---------------------------------------------------------
+
+def main():
+    alpha_drug_list = []
+    total_no_of_drugs = 0
+
+    print('fetching site...')
+
+    html_txt_prescript_page = requests.get(
+        'https://www.netmeds.com/prescriptions', headers=headers).text
+
+    browser_soup = BeautifulSoup(html_txt_prescript_page, 'lxml')
+    temp_list = browser_soup .select("ul.alpha-drug-list a")
 
 
+    for x in temp_list:
+        # print(x.text)
+        z = re.findall('[0-9]+', re.findall('\([0-9]+\)', x.text.strip())[0])[0]
+        if z != '0':
+            total_no_of_drugs += int(z)
+            # adding no zero item link to be fetched
+            alpha_drug_list.append(x.attrs['href'])
+
+    print('total drugs: ', total_no_of_drugs)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executer:
+        executer.map(getting_urls_cat, alpha_drug_list)
 
 
-html_txt_prescript_page = requests.get(
-    'https://www.netmeds.com/prescriptions').text
-
-browser_soup = BeautifulSoup(html_txt_prescript_page, 'lxml')
-
-alpha_drug_list = browser_soup .select("ul.alpha-drug-list a")
-
-
-for x in alpha_drug_list:
-    # print(x.text)
-    z = re.findall('[0-9]+', re.findall('\([0-9]+\)', x.text.strip())[0])[0]
-    if z != '0':
-        # print(z)
-        link_cat = x.attrs['href']
-        getting_urls_cat(link_cat)
-
-
+if __name__ == '__main__':
+    main()
