@@ -31,4 +31,4 @@ jobs:
       with:
         name: 'netmeds-data-download'
         path: "./data"
-  
+        retention-days: 1
