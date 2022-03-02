@@ -18,7 +18,7 @@ def get_drug(url_link):
     drug_images = []  # store one or more images details
     html_text = ''
     try:
-        print(f'fetching from {url_link}')
+#         print(f'fetching from {url_link}')
         html_text = requests.get(url_link, headers=headers, timeout=180).text
     except requests.exceptions.RequestException as e:
         print('connection error')
