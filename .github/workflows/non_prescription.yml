@@ -24,11 +24,11 @@ jobs:
     - name: Get NetMeds Data
       run: |
         mkdir data
-        python main.py
+        python non_prescription.py
         
     - name: Upload WSA
       uses: actions/upload-artifact@v2.3.1
       with:
-        name: 'netmeds-data-download'
+        name: 'netmeds-data-download-non-presc'
         path: "./data"
         retention-days: 1
