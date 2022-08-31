@@ -1,21 +1,36 @@
-from ast import While
+import dataclasses
+from itertools import product
+from xmlrpc.client import boolean
 from bs4 import BeautifulSoup
-import time
 import requests
 import json
 import re
 import concurrent.futures
 
-no_of_drugs_count = 1
+no_of_products_count = 1
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36 Edg/98.0.1108.62'
 }
 
 
-def get_drug(url_link):
+@dataclasses.dataclass
+class Product():
+    id: int
+    images: list
+    name:str
+    compounds : str #
+    final_price: float
+    mrp: float
+    product_details:dict
+    variant: str = ''
+    prescription: str = 'non-prescription'
+    require_rx : boolean = False
+    
 
-    drug_images = []  # store one or more images details
+def get_product(url_link):
+
+    images = []  # store one or more images details
     html_text = ''
     try:
 #         print(f'fetching from {url_link}')
@@ -26,49 +41,41 @@ def get_drug(url_link):
 
     soup = BeautifulSoup(html_text, 'lxml')
 
-    drug_image_raw_list = soup.find_all(
+    image_raw_list = soup.find_all(
         'figure', attrs={'class': 'figure'})
 
-    for drug_image_raw in drug_image_raw_list:
+    for image_raw in image_raw_list:
         # one image blueprint
-        drug_image = {}
+        image = {}
         try:
-            drug_image_link = drug_image_raw.img.attrs['src']
-            drug_image_alt_text = drug_image_raw.img.attrs['alt']
-            drug_image_title_text = drug_image_raw.img.attrs['title']
-
-            drug_image['image link'] = drug_image_link
-            drug_image['image alt'] = drug_image_alt_text
-            drug_image['image title'] = drug_image_title_text
-
-            drug_images.append(drug_image)
-            # print(drug_images)
+            image['image link'] = image_raw.img.attrs['src']
+            image['image alt']= image_raw.img.attrs['alt']
+            image['image title'] = image_raw.img.attrs['title']
+            images.append(image)
+            # print(images)
 
         except AttributeError:
-            drug_image_link = ''
-            drug_image_alt_text = ''
-            drug_image_title_text = ''
-
+            image=None
     try:
-        drug_name = soup.find(
+        name = soup.find(
             'h1', attrs={'class': 'black-txt'}).text.strip()
     except AttributeError:
-        drug_name = ''
+        name = ''
     try:
-        drug_prescription = soup.find(
-            'span', attrs={'class': 'gen_drug ellipsis'}).text.strip()
+        prescription = soup.find(
+            'span', attrs={'class': 'gen_product ellipsis'}).text.strip()
     except AttributeError:
-        drug_prescription = ''
+        prescription = ''
     try:
-        drug_require_rx = soup.find(
+        require_rx = soup.find(
             'span', attrs={'class': 'req_Rx'}).text.strip()
     except AttributeError:
-        drug_require_rx = ''
+        require_rx = ''
     try:
-        drug_chemicals = soup.find(
-            'div', attrs={'class': 'drug-manu'}).a.text.strip()
+        chemicals = soup.find(
+            'div', attrs={'class': 'product-manu'}).a.text.strip()
     except AttributeError:
-        drug_chemicals = ''
+        chemicals = ''
     try:
         final_price = soup.find(
             'span', attrs={'class': 'final-price'}).contents[-1].replace('₹', '').strip()
@@ -80,10 +87,10 @@ def get_drug(url_link):
     except AttributeError:
         price = ''
     try:
-        drug_varient = soup.find(
-            'span', attrs={'class': 'drug-varient'}).text.replace('*', '')
+        varient = soup.find(
+            'span', attrs={'class': 'product-varient'}).text.replace('*', '')
     except AttributeError:
-        drug_varient = ''
+        varient = ''
 
     product_details_list = [x.ul.div for x in soup.find_all(
         'div', attrs={'class': 'manufacturer_details'})]
@@ -96,30 +103,99 @@ def get_drug(url_link):
             'div', attrs={'class': 'manufacturer__name_value'}).text
         product_details[name] = value
 
-    global no_of_drugs_count
+    global no_of_products_count
 
-    drug = {
-        'id': no_of_drugs_count,
-        'drug images': drug_images,
-        'drug name': drug_name,
-        'prescription': drug_prescription,
-        'require rx': drug_require_rx,
-        'compounds': drug_chemicals,
-        'final price': final_price,
-        'mrp': price,
-        'drug varient': drug_varient,
-        'product details': product_details}
+    product = Product(
+        id=no_of_products_count,
+        images= images,
+        name=name,
+        compounds= chemicals,
+        final_price=final_price,
+        mrp= price,
+        product_details=product_details,
+        variant=varient,
+        prescription=prescription,
+        require_rx=require_rx
+    )
 
-    no_of_drugs_count += 1
-    return drug
+    no_of_products_count += 1
+    product_dict = dataclasses.asdict(product)
+    return product_dict
 
 
-def create_json_file(lst,  filename):
-    # drugs_dict = {'drugs': lst}
+
+
+# print(product)
+
+# -------------------------- non prescription --------------------------------------
+
+
+home_url = "https://www.netmeds.com"
+
+
+def get_level_top_cats():
+    html_home_page_txt = requests.get(home_url, headers=headers).text
+    soup = BeautifulSoup(html_home_page_txt, 'lxml')
+    level_top_cats = [link.attrs['href'] for link in soup.find_all('a', attrs={"class": "level-top"})]
+    return level_top_cats
+
+
+
+
+def get_sub_link(link):
+    link_text = requests.get(home_url + link).text
+    sub_soup = BeautifulSoup(link_text, 'lxml')
+    sub_links = [url.attrs['href'] for url in sub_soup.find_all('a', attrs={"class": "category_name"})]    
+    return sub_links
+            # print(sub_links)
+
+
+
+def get_level_sub_cats():
+    level_sub_cats : list = []
+    level_top_cats = get_level_top_cats()
+
+    # with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executer:
+    #     for sub_cat in executer.map(get_sub_link, level_top_cats):
+    #         level_sub_cats.extend(sub_cat)
+
+    for link in level_top_cats:
+        level_sub_cats.extend(get_sub_link(link))
+        
+    # print(level_sub_cats)
+    return level_sub_cats
+
+
+def get_product_link(cat):
+    """ get all the product from a category """
+    link_text = requests.get(cat).text
+    product_soup = BeautifulSoup(link_text, 'lxml')
+    product_link_list = [url.attrs['href'] for url in product_soup.find_all('a', attrs={"class": "category_name"})]    
+    
+    # print(product_link_list)
+    return product_link_list
+
+
+def get_all_product_link():
+    """ getting product from all categories """
+    product_link = []
+    sub_cat_links = get_level_sub_cats()
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executer:
+        for link in executer.map(get_product_link, sub_cat_links):
+            product_link.extend(link)
+            
+
+    print(product_link)
+    return product_link
+
+
+
+def create_json_file(lst:list,  filename:str):
+    # products_dict = {'products': lst}
     with open('./data/'+filename, 'w') as outputfile:
         json.dump(lst, outputfile, indent=4)
 
-
+#----------------------------------------------prescrition-----------------------------------------------------
 def getting_urls_cat(category):
     ''' getiing url list from category and getting drug details'''
     html_txt = requests.get(category).text
@@ -130,27 +206,42 @@ def getting_urls_cat(category):
     drugs_of_selectd_cat_list = []
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executer:
-        for drug in executer.map(get_drug, drug_url_list):
+        for drug in executer.map(get_product, drug_url_list):
             drugs_of_selectd_cat_list.append(drug)
 
     file_name = category.split("/")[-1] + '.json'
 
     print(f'Saving to file: {file_name}')
 
-    create_json_file(drugs_of_selectd_cat_list, file_name)
+    # create_json_file(drugs_of_selectd_cat_list, file_name)
+    return drugs_of_selectd_cat_list
 
 
-# ---------------------------------------------------------
+
+
+
+#------------------------------------------------------------------------
+
+
 
 def main():
+    all_product = []
+
+# -------------------------- non prescription --------------------------------------
+
+    i=1;
+    all_links = get_all_product_link()
+    with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executer:
+        for product in executer.map(get_product, all_links):
+            print(f"adding product {i} to the list")
+            i += 1
+            all_product.append(product)
+
+# -------------------------------------- Prescription --------------------------------
     alpha_drug_list = []
-    total_no_of_drugs = 0
-
-    print('fetching site...')
-
-    html_txt_prescript_page = requests.get(
-        'https://www.netmeds.com/prescriptions', headers=headers).text
-
+    total_no_of_drugs_prescription = 0
+    print('fetching site... fron prescrition ')
+    html_txt_prescript_page = requests.get('https://www.netmeds.com/prescriptions', headers=headers).text
     browser_soup = BeautifulSoup(html_txt_prescript_page, 'lxml')
     temp_list = browser_soup .select("ul.alpha-drug-list a")
 
@@ -159,14 +250,22 @@ def main():
         # print(x.text)
         z = re.findall('[0-9]+', re.findall('\([0-9]+\)', x.text.strip())[0])[0]
         if z != '0':
-            total_no_of_drugs += int(z)
+            total_no_of_drugs_prescription += int(z)
             # adding no zero item link to be fetched
             alpha_drug_list.append(x.attrs['href'])
 
-    print('total drugs: ', total_no_of_drugs)
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executer:
-        executer.map(getting_urls_cat, alpha_drug_list)
+        for cat_list in executer.map(getting_urls_cat, alpha_drug_list):
+            all_product.extend(cat_list)
+    
 
 
-if __name__ == '__main__':
+#-------------------------------------------------------------------------------------
+    print(f'toal no of product: {len(all_links) + total_no_of_drugs_prescription}')
+
+    create_json_file(all_product, 'product_non_prescription')
+  
+
+
+if __name__ == "__main__":
     main()
