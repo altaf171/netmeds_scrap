@@ -1,4 +1,5 @@
 import dataclasses
+from fileinput import filename
 from itertools import product
 from xmlrpc.client import boolean
 from bs4 import BeautifulSoup
@@ -6,6 +7,8 @@ import requests
 import json
 import re
 import concurrent.futures
+
+FOLDER="data"
 
 no_of_products_count = 1
 
@@ -26,7 +29,20 @@ class Product():
     variant: str = ''
     prescription: str = 'non-prescription'
     require_rx : boolean = False
+
+
+def save_image_file(link:str):
+    req = requests.get(link)
+    if req.status_code == 200:
+        filename = link.split('/')[-1]
+        with open('./' + FOLDER +'/'+filename,'wb') as file:
+            file.write(req.content)
+            return  FOLDER +'/'+filename
+
+    return ''
     
+
+
 
 def get_product(url_link):
 
@@ -36,7 +52,7 @@ def get_product(url_link):
 #         print(f'fetching from {url_link}')
         html_text = requests.get(url_link, headers=headers, timeout=180).text
     except requests.exceptions.RequestException as e:
-        print('connection error')
+        print('connection error', e)
         return ''
 
     soup = BeautifulSoup(html_text, 'lxml')
@@ -48,7 +64,8 @@ def get_product(url_link):
         # one image blueprint
         image = {}
         try:
-            image['image link'] = image_raw.img.attrs['src']
+            image_link = image_raw.img.attrs['src']
+            image['image file'] = save_image_file(image_link)
             image['image alt']= image_raw.img.attrs['alt']
             image['image title'] = image_raw.img.attrs['title']
             images.append(image)
@@ -192,7 +209,7 @@ def get_all_product_link():
 
 def create_json_file(lst:list,  filename:str):
     # products_dict = {'products': lst}
-    with open('./data/'+filename, 'w') as outputfile:
+    with open('./' + FOLDER +'/'+filename, 'w') as outputfile:
         json.dump(lst, outputfile, indent=4)
 
 #----------------------------------------------prescrition-----------------------------------------------------
@@ -211,7 +228,7 @@ def getting_urls_cat(category):
 
     file_name = category.split("/")[-1] + '.json'
 
-    print(f'Saving to file: {file_name}')
+    # print(f'Saving to file: {file_name}')
 
     # create_json_file(drugs_of_selectd_cat_list, file_name)
     return drugs_of_selectd_cat_list
@@ -240,7 +257,7 @@ def main():
 # -------------------------------------- Prescription --------------------------------
     alpha_drug_list = []
     total_no_of_drugs_prescription = 0
-    print('fetching site... fron prescrition ')
+    print('fetching site... from prescrition ')
     html_txt_prescript_page = requests.get('https://www.netmeds.com/prescriptions', headers=headers).text
     browser_soup = BeautifulSoup(html_txt_prescript_page, 'lxml')
     temp_list = browser_soup .select("ul.alpha-drug-list a")
