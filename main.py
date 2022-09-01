@@ -226,9 +226,9 @@ def getting_urls_cat(category):
         for drug in executer.map(get_product, drug_url_list):
             drugs_of_selectd_cat_list.append(drug)
 
-    file_name = category.split("/")[-1] + '.json'
+    cat_name = category.split("/")[-1] 
 
-    # print(f'Saving to file: {file_name}')
+    print(f'adding to product list: {cat_name}')
 
     # create_json_file(drugs_of_selectd_cat_list, file_name)
     return drugs_of_selectd_cat_list
