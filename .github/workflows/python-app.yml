@@ -24,6 +24,7 @@ jobs:
     - name: Get NetMeds Data
       run: |
         mkdir data
+        mkdir data/images
         python main.py
         
     - name: Upload PRODUCT DATA
