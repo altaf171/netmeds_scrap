@@ -9,6 +9,7 @@ import re
 import concurrent.futures
 
 FOLDER="data"
+IMAGE_FOLDER = FOLDER + "/images"
 
 no_of_products_count = 1
 
@@ -35,9 +36,9 @@ def save_image_file(link:str):
     req = requests.get(link)
     if req.status_code == 200:
         filename = link.split('/')[-1]
-        with open('./' + FOLDER +'/'+filename,'wb') as file:
+        with open('./' + IMAGE_FOLDER +'/'+filename,'wb') as file:
             file.write(req.content)
-            return  FOLDER +'/'+filename
+            return  IMAGE_FOLDER +'/'+filename
 
     return ''
     
@@ -202,7 +203,7 @@ def get_all_product_link():
             product_link.extend(link)
             
 
-    print(product_link)
+    # print(product_link)
     return product_link
 
 
