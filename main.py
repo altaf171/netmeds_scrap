@@ -39,7 +39,7 @@ def save_image_file(link:str):
     while(req_200):
         req_200 = False
         try:
-            req = requests.get(link)
+            req = requests.get(link, verify=False)
             if req.status_code == 200:
                 filename = link.split('/')[-1]
                 with open('./' + IMAGE_FOLDER +'/'+filename,'wb') as file:
@@ -68,7 +68,7 @@ def get_product(url_link):
     while(req_200):
         req_200 = False
         try:
-            html_text = requests.get(url_link, headers=headers, timeout=60).text
+            html_text = requests.get(url_link, headers=headers, timeout=60, verify=False).text
         except (requests.exceptions.RequestException, requests.exceptions.SSLError) as e:
             req_200 = False
             sleep(10)
@@ -177,7 +177,7 @@ home_url = "https://www.netmeds.com"
 
 
 def get_level_top_cats():
-    html_home_page_txt = requests.get(home_url, headers=headers).text
+    html_home_page_txt = requests.get(home_url, headers=headers, verify=False).text
     soup = BeautifulSoup(html_home_page_txt, 'lxml')
     level_top_cats = [link.attrs['href'] for link in soup.find_all('a', attrs={"class": "level-top"})]
     return level_top_cats
@@ -186,7 +186,7 @@ def get_level_top_cats():
 
 
 def get_sub_link(link):
-    link_text = requests.get(home_url + link).text
+    link_text = requests.get(home_url + link, verify=False).text
     sub_soup = BeautifulSoup(link_text, 'lxml')
     sub_links = [url.attrs['href'] for url in sub_soup.find_all('a', attrs={"class": "category_name"})]    
     return sub_links
@@ -211,7 +211,7 @@ def get_level_sub_cats():
 
 def get_product_link(cat):
     """ get all the product from a category """
-    link_text = requests.get(cat).text
+    link_text = requests.get(cat, verify=False).text
     product_soup = BeautifulSoup(link_text, 'lxml')
     product_link_list = [url.attrs['href'] for url in product_soup.find_all('a', attrs={"class": "category_name"})]    
     
@@ -241,7 +241,7 @@ def create_json_file(lst:list,  filename:str):
 #----------------------------------------------prescrition-----------------------------------------------------
 def getting_urls_cat(category):
     ''' getiing url list from category and getting drug details'''
-    html_txt = requests.get(category).text
+    html_txt = requests.get(category, verify=False).text
     soup_cat = BeautifulSoup(html_txt, 'lxml')
     drug_url_list = [url_link.a.attrs['href'] for url_link in soup_cat.find_all(
         'li', attrs={'class': 'product-item'})]
@@ -284,7 +284,7 @@ def main():
     alpha_drug_list = []
     total_no_of_drugs_prescription = 0
     print('fetching site... from prescrition ')
-    html_txt_prescript_page = requests.get('https://www.netmeds.com/prescriptions', headers=headers).text
+    html_txt_prescript_page = requests.get('https://www.netmeds.com/prescriptions', headers=headers, verify=False).text
     browser_soup = BeautifulSoup(html_txt_prescript_page, 'lxml')
     temp_list = browser_soup .select("ul.alpha-drug-list a")
 
