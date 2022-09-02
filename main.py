@@ -1,6 +1,7 @@
 import dataclasses
 from fileinput import filename
 from itertools import product
+from time import sleep
 from xmlrpc.client import boolean
 from bs4 import BeautifulSoup
 import requests
@@ -33,12 +34,25 @@ class Product():
 
 
 def save_image_file(link:str):
-    req = requests.get(link)
-    if req.status_code == 200:
-        filename = link.split('/')[-1]
-        with open('./' + IMAGE_FOLDER +'/'+filename,'wb') as file:
-            file.write(req.content)
-            return  IMAGE_FOLDER +'/'+filename
+    req_200 = True
+    loop_cout = 0
+    while(req_200):
+        req_200 = False
+        try:
+            req = requests.get(link)
+            if req.status_code == 200:
+                filename = link.split('/')[-1]
+                with open('./' + IMAGE_FOLDER +'/'+filename,'wb') as file:
+                    file.write(req.content)
+                    return  IMAGE_FOLDER +'/'+filename
+        except (requests.exceptions.RequestException,requests.exceptions.SSLError) as e:
+            req_200=True
+            loop_cout += 1
+            if loop_cout > 10:
+                # try 10 time before exiting 
+                req_200 = False
+                print('connection error', e)
+                return ''
 
     return ''
     
@@ -49,12 +63,23 @@ def get_product(url_link):
 
     images = []  # store one or more images details
     html_text = ''
-    try:
-#         print(f'fetching from {url_link}')
-        html_text = requests.get(url_link, headers=headers, timeout=180).text
-    except requests.exceptions.RequestException as e:
-        print('connection error', e)
-        return ''
+    req_200 = True
+    loop_cout = 0
+    while(req_200):
+        req_200 = False
+        try:
+            html_text = requests.get(url_link, headers=headers, timeout=60).text
+        except (requests.exceptions.RequestException, requests.exceptions.SSLError) as e:
+            req_200 = False
+            sleep(10)
+            loop_cout += 1
+            if loop_cout > 10:
+                # try 10 time before exiting 
+                req_200 = False
+                print('connection error', e)
+                return ''
+
+            
 
     soup = BeautifulSoup(html_text, 'lxml')
 
