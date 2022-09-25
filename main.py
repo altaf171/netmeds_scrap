@@ -8,8 +8,13 @@ import requests
 import json
 import re
 import concurrent.futures
+from urllib3.exceptions import InsecureRequestWarning
 
-FOLDER="data"
+
+# Suppress only the single warning from urllib3 needed.
+requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
+
+FOLDER = "data"
 IMAGE_FOLDER = FOLDER + "/images"
 
 no_of_products_count = 1
@@ -23,40 +28,38 @@ headers = {
 class Product():
     id: int
     images: list
-    name:str
-    compounds : str #
+    name: str
+    compounds: str
     final_price: float
     mrp: float
-    product_details:dict
+    product_details: dict
     variant: str = ''
-    prescription: str = 'non-prescription'
-    require_rx : boolean = False
+    prescription: str = 'non_prescription'
+    require_rx: boolean = False
 
 
-def save_image_file(link:str):
+def save_image_file(link: str):
     req_200 = True
     loop_cout = 0
-    while(req_200):
+    while (req_200):
         req_200 = False
         try:
             req = requests.get(link, verify=False)
             if req.status_code == 200:
                 filename = link.split('/')[-1]
-                with open('./' + IMAGE_FOLDER +'/'+filename,'wb') as file:
+                with open('./' + IMAGE_FOLDER + '/'+filename, 'wb') as file:
                     file.write(req.content)
-                    return  IMAGE_FOLDER +'/'+filename
-        except (requests.exceptions.RequestException,requests.exceptions.SSLError) as e:
-            req_200=True
+                    return IMAGE_FOLDER + '/'+filename
+        except (requests.exceptions.RequestException, requests.exceptions.SSLError) as e:
+            req_200 = True
             loop_cout += 1
             if loop_cout > 10:
-                # try 10 time before exiting 
+                # try 10 time before exiting
                 req_200 = False
                 print('connection error', e)
                 return ''
 
     return ''
-    
-
 
 
 def get_product(url_link):
@@ -65,21 +68,20 @@ def get_product(url_link):
     html_text = ''
     req_200 = True
     loop_cout = 0
-    while(req_200):
+    while (req_200):
         req_200 = False
         try:
-            html_text = requests.get(url_link, headers=headers, timeout=60, verify=False).text
+            html_text = requests.get(
+                url_link, headers=headers, timeout=60, verify=False).text
         except (requests.exceptions.RequestException, requests.exceptions.SSLError) as e:
             req_200 = False
             sleep(10)
             loop_cout += 1
             if loop_cout > 10:
-                # try 10 time before exiting 
+                # try 10 time before exiting
                 req_200 = False
                 print('connection error', e)
                 return ''
-
-            
 
     soup = BeautifulSoup(html_text, 'lxml')
 
@@ -92,13 +94,13 @@ def get_product(url_link):
         try:
             image_link = image_raw.img.attrs['src']
             image['image file'] = save_image_file(image_link)
-            image['image alt']= image_raw.img.attrs['alt']
+            image['image alt'] = image_raw.img.attrs['alt']
             image['image title'] = image_raw.img.attrs['title']
             images.append(image)
             # print(images)
 
         except AttributeError:
-            image=None
+            image = None
     try:
         name = soup.find(
             'h1', attrs={'class': 'black-txt'}).text.strip()
@@ -106,7 +108,9 @@ def get_product(url_link):
         name = ''
     try:
         prescription = soup.find(
-            'span', attrs={'class': 'gen_product ellipsis'}).text.strip()
+            'span', attrs={'class': 'gen_drug ellipsis'}).text.strip()
+        if re.search('non-prescriptions',url_link):
+            prescription = 'non-prescriptions'
     except AttributeError:
         prescription = ''
     try:
@@ -150,11 +154,11 @@ def get_product(url_link):
 
     product = Product(
         id=no_of_products_count,
-        images= images,
+        images=images,
         name=name,
-        compounds= chemicals,
+        compounds=chemicals,
         final_price=final_price,
-        mrp= price,
+        mrp=price,
         product_details=product_details,
         variant=varient,
         prescription=prescription,
@@ -166,36 +170,32 @@ def get_product(url_link):
     return product_dict
 
 
-
-
 # print(product)
 
 # -------------------------- non prescription --------------------------------------
-
-
 home_url = "https://www.netmeds.com"
 
 
 def get_level_top_cats():
-    html_home_page_txt = requests.get(home_url, headers=headers, verify=False).text
+    html_home_page_txt = requests.get(
+        home_url, headers=headers, verify=False).text
     soup = BeautifulSoup(html_home_page_txt, 'lxml')
-    level_top_cats = [link.attrs['href'] for link in soup.find_all('a', attrs={"class": "level-top"})]
+    level_top_cats = [link.attrs['href']
+                      for link in soup.find_all('a', attrs={"class": "level-top"})]
     return level_top_cats
-
-
 
 
 def get_sub_link(link):
     link_text = requests.get(home_url + link, verify=False).text
     sub_soup = BeautifulSoup(link_text, 'lxml')
-    sub_links = [url.attrs['href'] for url in sub_soup.find_all('a', attrs={"class": "category_name"})]    
+    sub_links = [url.attrs['href']
+                 for url in sub_soup.find_all('a', attrs={"class": "category_name"})]
     return sub_links
-            # print(sub_links)
-
+    # print(sub_links)
 
 
 def get_level_sub_cats():
-    level_sub_cats : list = []
+    level_sub_cats: list = []
     level_top_cats = get_level_top_cats()
 
     # with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executer:
@@ -204,7 +204,7 @@ def get_level_sub_cats():
 
     for link in level_top_cats:
         level_sub_cats.extend(get_sub_link(link))
-        
+
     # print(level_sub_cats)
     return level_sub_cats
 
@@ -213,8 +213,9 @@ def get_product_link(cat):
     """ get all the product from a category """
     link_text = requests.get(cat, verify=False).text
     product_soup = BeautifulSoup(link_text, 'lxml')
-    product_link_list = [url.attrs['href'] for url in product_soup.find_all('a', attrs={"class": "category_name"})]    
-    
+    product_link_list = [url.attrs['href'] for url in product_soup.find_all(
+        'a', attrs={"class": "category_name"})]
+
     # print(product_link_list)
     return product_link_list
 
@@ -226,19 +227,19 @@ def get_all_product_link():
     with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executer:
         for link in executer.map(get_product_link, sub_cat_links):
             product_link.extend(link)
-            
 
     # print(product_link)
     return product_link
 
 
-
-def create_json_file(lst:list,  filename:str):
+def create_json_file(lst: list,  filename: str):
     # products_dict = {'products': lst}
-    with open('./' + FOLDER +'/'+filename, 'w') as outputfile:
+    with open('./' + FOLDER + '/'+filename, 'w') as outputfile:
         json.dump(lst, outputfile, indent=4)
 
-#----------------------------------------------prescrition-----------------------------------------------------
+# ----------------------------------------------prescrition-----------------------------------------------------
+
+
 def getting_urls_cat(category):
     ''' getiing url list from category and getting drug details'''
     html_txt = requests.get(category, verify=False).text
@@ -248,11 +249,11 @@ def getting_urls_cat(category):
 
     drugs_of_selectd_cat_list = []
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executer:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executer:
         for drug in executer.map(get_product, drug_url_list):
             drugs_of_selectd_cat_list.append(drug)
 
-    cat_name = category.split("/")[-1] 
+    cat_name = category.split("/")[-1]
 
     print(f'adding to product list: {cat_name}')
 
@@ -260,11 +261,7 @@ def getting_urls_cat(category):
     return drugs_of_selectd_cat_list
 
 
-
-
-
-#------------------------------------------------------------------------
-
+# ------------------------------------------------------------------------
 
 
 def main():
@@ -272,7 +269,7 @@ def main():
 
 # -------------------------- non prescription --------------------------------------
 
-    i=1;
+    i = 1
     all_links = get_all_product_link()
     with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executer:
         for product in executer.map(get_product, all_links):
@@ -284,30 +281,30 @@ def main():
     alpha_drug_list = []
     total_no_of_drugs_prescription = 0
     print('fetching site... from prescrition ')
-    html_txt_prescript_page = requests.get('https://www.netmeds.com/prescriptions', headers=headers, verify=False).text
+    html_txt_prescript_page = requests.get(
+        'https://www.netmeds.com/prescriptions', headers=headers, verify=False).text
     browser_soup = BeautifulSoup(html_txt_prescript_page, 'lxml')
     temp_list = browser_soup .select("ul.alpha-drug-list a")
 
-
     for x in temp_list:
         # print(x.text)
-        z = re.findall('[0-9]+', re.findall('\([0-9]+\)', x.text.strip())[0])[0]
+        z = re.findall(
+            '[0-9]+', re.findall('\([0-9]+\)', x.text.strip())[0])[0]
         if z != '0':
             total_no_of_drugs_prescription += int(z)
             # adding no zero item link to be fetched
             alpha_drug_list.append(x.attrs['href'])
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executer:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executer:
         for cat_list in executer.map(getting_urls_cat, alpha_drug_list):
             all_product.extend(cat_list)
-    
 
 
-#-------------------------------------------------------------------------------------
-    print(f'toal no of product: {len(all_links) + total_no_of_drugs_prescription}')
+# -------------------------------------------------------------------------------------
+    print(
+        f'toal no of product: {len(all_links) + total_no_of_drugs_prescription}')
 
     create_json_file(all_product, 'product_non_prescription')
-  
 
 
 if __name__ == "__main__":
