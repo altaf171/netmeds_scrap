@@ -87,6 +87,9 @@ def get_product(url_link):
 
     image_raw_list = soup.find_all(
         'figure', attrs={'class': 'figure'})
+    # limits the number of images to 2
+    if len(image_raw_list) > 1:
+        image_raw_list = image_raw_list[:2]
 
     for image_raw in image_raw_list:
         # one image blueprint
