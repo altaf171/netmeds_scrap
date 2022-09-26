@@ -227,11 +227,11 @@ def get_all_product_link():
     """ getting product from all categories """
     product_link = []
     sub_cat_links = get_level_sub_cats()
-    # limit the product per prescription to 40
-    if len(sub_cat_links) > 40:
-        sub_cat_links = sub_cat_links[:41]
+    # limit the product per prescription to 20
+    if len(sub_cat_links) > 20:
+        sub_cat_links = sub_cat_links[:21]
         
-    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executer:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executer:
         for link in executer.map(get_product_link, sub_cat_links):
             product_link.extend(link)
 
@@ -256,7 +256,7 @@ def getting_urls_cat(category):
 
     drugs_of_selectd_cat_list = []
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executer:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executer:
         for drug in executer.map(get_product, drug_url_list):
             drugs_of_selectd_cat_list.append(drug)
 
@@ -278,7 +278,7 @@ def main():
 
     i = 1
     all_links = get_all_product_link()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executer:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executer:
         for product in executer.map(get_product, all_links):
             print(f"adding product {i} to the list")
             i += 1
@@ -302,7 +302,7 @@ def main():
             # adding no zero item link to be fetched
             alpha_drug_list.append(x.attrs['href'])
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executer:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executer:
         for cat_list in executer.map(getting_urls_cat, alpha_drug_list):
             all_product.extend(cat_list)
 
