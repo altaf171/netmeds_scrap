@@ -271,7 +271,7 @@ def main():
 
     i = 1
     all_links = get_all_product_link()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executer:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executer:
         for product in executer.map(get_product, all_links):
             print(f"adding product {i} to the list")
             i += 1
