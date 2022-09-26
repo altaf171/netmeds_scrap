@@ -227,6 +227,10 @@ def get_all_product_link():
     """ getting product from all categories """
     product_link = []
     sub_cat_links = get_level_sub_cats()
+    # limit the product per prescription to 40
+    if len(sub_cat_links) > 40:
+        sub_cat_links = sub_cat_links[:41]
+        
     with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executer:
         for link in executer.map(get_product_link, sub_cat_links):
             product_link.extend(link)
