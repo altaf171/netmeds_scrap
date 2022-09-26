@@ -231,7 +231,7 @@ def get_all_product_link():
     if len(sub_cat_links) > 40:
         sub_cat_links = sub_cat_links[:41]
         
-    with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executer:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executer:
         for link in executer.map(get_product_link, sub_cat_links):
             product_link.extend(link)
 
