@@ -220,6 +220,8 @@ def get_product_link(cat):
         'a', attrs={"class": "category_name"})]
 
     # print(product_link_list)
+    if len(product_link_list) > 20:
+        product_link_list = product_link_list[:21]
     return product_link_list
 
 
@@ -228,8 +230,7 @@ def get_all_product_link():
     product_link = []
     sub_cat_links = get_level_sub_cats()
     # limit the product per prescription to 20
-    if len(sub_cat_links) > 20:
-        sub_cat_links = sub_cat_links[:21]
+    
         
     with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executer:
         for link in executer.map(get_product_link, sub_cat_links):
