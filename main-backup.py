@@ -6,6 +6,8 @@ import json
 import re
 import concurrent.futures
 
+all_drugs = []
+
 no_of_drugs_count = 1
 
 headers = {
@@ -135,9 +137,14 @@ def getting_urls_cat(category):
 
     file_name = category.split("/")[-1] + '.json'
 
-    print(f'Saving to file: {file_name}')
+    print(f'adding to list: {file_name}')
+    
+    global all_drugs
+    all_drugs.extend(drugs_of_selectd_cat_list)
+    
 
-    create_json_file(drugs_of_selectd_cat_list, file_name)
+#     create_json_file(drugs_of_selectd_cat_list, file_name)
+
 
 
 # ---------------------------------------------------------
@@ -166,7 +173,8 @@ def main():
     print('total drugs: ', total_no_of_drugs)
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executer:
         executer.map(getting_urls_cat, alpha_drug_list)
-
+        
+    create_json_file(all_drugs, 'data.json')
 
 if __name__ == '__main__':
     main()
