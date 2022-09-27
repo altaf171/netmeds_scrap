@@ -61,6 +61,12 @@ def save_image_file(link: str):
 
     return ''
 
+def image_local_dir(link: str):
+    filename = link.split('/')[-1]
+    dir = IMAGE_FOLDER + '/' + filename
+    return dir
+
+
 
 def get_product(url_link):
 
@@ -96,7 +102,8 @@ def get_product(url_link):
         image = {}
         try:
             image_link = image_raw.img.attrs['src']
-            image['image file'] = save_image_file(image_link)
+            # image['image file'] = save_image_file(image_link)
+            image['image file'] = image_local_dir(image_link)
             image['image alt'] = image_raw.img.attrs['alt']
             image['image title'] = image_raw.img.attrs['title']
             images.append(image)
@@ -278,7 +285,7 @@ def main():
 
     i = 1
     all_links = get_all_product_link()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executer:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executer:
         for product in executer.map(get_product, all_links):
             print(f"adding product {i} to the list")
             i += 1
