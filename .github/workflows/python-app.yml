@@ -25,7 +25,7 @@ jobs:
       run: |
         mkdir data
         mkdir data/images
-        python main-backup.py
+        python main.py
         
     - name: Upload PRODUCT DATA
       uses: actions/upload-artifact@v2.3.1
