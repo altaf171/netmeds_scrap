@@ -5,13 +5,13 @@ import requests
 import json
 import re
 import concurrent.futures
-from urllib3.exceptions import InsecureRequestWarning
+# from urllib3.exceptions import InsecureRequestWarning
 
 all_drugs = []
 
 no_of_drugs_count = 1
 
-requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
+# requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36 Edg/98.0.1108.62'
@@ -24,7 +24,7 @@ def get_drug(url_link):
     html_text = ''
     try:
 #         print(f'fetching from {url_link}')
-        html_text = requests.get(url_link, headers=headers, timeout=180, verify=False).text
+        html_text = requests.get(url_link, headers=headers, timeout=180).text
     except requests.exceptions.RequestException as e:
         print('connection error')
         return ''
@@ -127,7 +127,7 @@ def create_json_file(lst,  filename):
 
 def getting_urls_cat(category):
     ''' getiing url list from category and getting drug details'''
-    html_txt = requests.get(category, verify=False).text
+    html_txt = requests.get(category).text
     soup_cat = BeautifulSoup(html_txt, 'lxml')
     drug_url_list = [url_link.a.attrs['href'] for url_link in soup_cat.find_all(
         'li', attrs={'class': 'product-item'})]
@@ -159,7 +159,7 @@ def main():
     print('fetching site...')
 
     html_txt_prescript_page = requests.get(
-        'https://www.netmeds.com/prescriptions', headers=headers, verify=False).text
+        'https://www.netmeds.com/prescriptions', headers=headers).text
 
     browser_soup = BeautifulSoup(html_txt_prescript_page, 'lxml')
     temp_list = browser_soup .select("ul.alpha-drug-list a")
