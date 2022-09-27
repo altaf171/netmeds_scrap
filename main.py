@@ -1,6 +1,4 @@
 import dataclasses
-from fileinput import filename
-from itertools import product
 from time import sleep
 from xmlrpc.client import boolean
 from bs4 import BeautifulSoup
@@ -224,6 +222,7 @@ def get_level_sub_cats():
 
 def get_product_link(cat):
     """ get all the product from a category """
+
     link_text = requests.get(cat, verify=False).text
     product_soup = BeautifulSoup(link_text, 'lxml')
     product_link_list = [url.attrs['href'] for url in product_soup.find_all(
@@ -237,11 +236,8 @@ def get_all_product_link():
     """ getting product from all categories """
     product_link = []
     sub_cat_links = get_level_sub_cats()
-    # limit the product per prescription to 20
-    if len(sub_cat_links) > 20:
-        sub_cat_links = sub_cat_links[:21]
         
-    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executer:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executer:
         for link in executer.map(get_product_link, sub_cat_links):
             product_link.extend(link)
 
@@ -266,7 +262,7 @@ def getting_urls_cat(category):
 
     drugs_of_selectd_cat_list = []
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executer:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executer:
         for drug in executer.map(get_product, drug_url_list):
             global all_product
             all_product.append(drug)
