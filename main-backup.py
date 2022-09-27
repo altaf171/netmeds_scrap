@@ -5,6 +5,7 @@ import requests
 import json
 import re
 import concurrent.futures
+from urllib3.exceptions import InsecureRequestWarning
 
 all_drugs = []
 
