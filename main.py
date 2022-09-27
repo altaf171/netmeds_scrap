@@ -14,10 +14,13 @@ from urllib3.exceptions import InsecureRequestWarning
 # Suppress only the single warning from urllib3 needed.
 requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
+all_product = []
+
 FOLDER = "data"
 IMAGE_FOLDER = FOLDER + "/images"
 
 no_of_products_count = 1
+
 
 headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36 Edg/98.0.1108.62'
@@ -238,7 +241,7 @@ def get_all_product_link():
     if len(sub_cat_links) > 20:
         sub_cat_links = sub_cat_links[:21]
         
-    with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executer:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executer:
         for link in executer.map(get_product_link, sub_cat_links):
             product_link.extend(link)
 
@@ -279,7 +282,7 @@ def getting_urls_cat(category):
 
 
 def main():
-    all_product = []
+    global all_product
 
 # -------------------------- non prescription --------------------------------------
 
@@ -318,7 +321,7 @@ def main():
     print(
         f'toal no of product: {len(all_links) + total_no_of_drugs_prescription}')
 
-    create_json_file(all_product, 'product_non_prescription')
+    create_json_file(all_product, 'product_data')
 
 
 if __name__ == "__main__":
