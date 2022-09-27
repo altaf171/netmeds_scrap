@@ -266,16 +266,19 @@ def getting_urls_cat(category):
 
     drugs_of_selectd_cat_list = []
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executer:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executer:
         for drug in executer.map(get_product, drug_url_list):
-            drugs_of_selectd_cat_list.append(drug)
+            global all_product
+            all_product.append(drug)
+#             drugs_of_selectd_cat_list.append(drug)
+
 
     cat_name = category.split("/")[-1]
 
     print(f'adding to product list: {cat_name}')
 
     # create_json_file(drugs_of_selectd_cat_list, file_name)
-    return drugs_of_selectd_cat_list
+#     return drugs_of_selectd_cat_list
 
 
 # ------------------------------------------------------------------------
@@ -288,7 +291,7 @@ def main():
 
     i = 1
     all_links = get_all_product_link()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executer:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executer:
         for product in executer.map(get_product, all_links):
             print(f"adding product {i} to the list")
             i += 1
@@ -312,9 +315,10 @@ def main():
             # adding no zero item link to be fetched
             alpha_drug_list.append(x.attrs['href'])
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executer:
-        for cat_list in executer.map(getting_urls_cat, alpha_drug_list):
-            all_product.extend(cat_list)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executer:
+        executer.map(getting_urls_cat, alpha_drug_list)
+#         for cat_list in executer.map(getting_urls_cat, alpha_drug_list):
+#             all_product.extend(cat_list)
 
 
 # -------------------------------------------------------------------------------------
